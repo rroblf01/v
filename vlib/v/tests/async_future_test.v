@@ -24,3 +24,8 @@ fn test_spawn_async() {
 	f := spawn_async(worker)
 	assert await f == 7
 }
+
+fn test_sleep_async() {
+	f := sleep_async(1)
+	assert await f == true
+}

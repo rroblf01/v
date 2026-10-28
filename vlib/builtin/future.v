@@ -40,3 +40,11 @@ pub fn spawn_async[T](f fn () T) Future[T] {
 	}()
 	return Future[T]{state: state}
 }
+
+// sleep_async sleeps for `ms` milliseconds in a background thread.
+pub fn sleep_async(ms int) Future[bool] {
+	return spawn_async[bool](fn [ms] () bool {
+		C.usleep(u32(ms) * 1000)
+		return true
+	})
+}
