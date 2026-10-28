@@ -1507,6 +1507,10 @@ fn (mut p Parser) add_children2(a flat.NodeId, b flat.NodeId) int {
 // ==================== top-level ====================
 
 fn (mut p Parser) top_level_stmt() flat.NodeId {
+	// Contextual keyword: `async fn ...`
+	if p.tok == .name && p.lit == 'async' && p.peek() == .key_fn {
+		return p.fn_decl()
+	}
 	match p.tok {
 		.key_fn {
 			return p.fn_decl()
@@ -1726,6 +1730,10 @@ fn (mut p Parser) cur_decl_is_fn() bool {
 }
 
 fn (mut p Parser) fn_decl() flat.NodeId {
+	// Contextual keyword: `async fn ...` (async/await support, WIP).
+	if p.tok == .name && p.lit == 'async' {
+		p.next()
+	}
 	p.check(.key_fn)
 	mut name := ''
 	mut name_pos := p.tok_pos
@@ -13135,6 +13143,23 @@ fn (mut p Parser) prefix_expr(stop_at_struct_field bool) flat.NodeId {
 			name_pos := p.tok_pos
 			name_end := p.tok_end
 			name := p.lit
+			// Contextual keyword: `await expr` (async/await, WIP).
+			if name == 'await' && p.peek() != .lpar {
+				p.next()
+				operand := p.expr_with_context(.power, stop_at_struct_field)
+				callee := p.a.add_node(flat.Node{
+					kind:  .ident
+					value: 'await'
+					pos:   token.new_span(p.cur_file_id, name_pos, name_end)
+				})
+				cstart := p.add_children([callee, operand])
+				return p.a.add_node(flat.Node{
+					kind:           .call
+					children_start: cstart
+					children_count: 2
+					pos:            p.span_to(op_start)
+				})
+			}
 			if p.peek() == .string && name !in ['c', 'r', 'js'] && !p.s.src[name_end..p.peek_pos].contains('\n') {
 				p.record_diagnostic_span('only `c`, `r`, `js` are recognized string prefixes, but you tried to use `${name}`', name_pos, name_end)
 			}
