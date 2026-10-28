@@ -13173,7 +13173,7 @@ fn (mut p Parser) prefix_expr(stop_at_struct_field bool) flat.NodeId {
 			// Contextual keyword: `await expr` (async/await, WIP).
 			// Only treat as await-expression when followed by an expression;
 			// otherwise fall through (e.g. `await` used as an identifier).
-			if name == 'await' && p.peek() != .lpar
+			if name == 'await' && p.peek() != .lpar && p.peek() != .lsbr
 				&& p.peek() !in [.rcbr, .rpar, .rsbr, .semicolon, .comma, .eof, .dot, .colon] {
 				p.next()
 				operand := p.expr_with_context(.power, stop_at_struct_field)
