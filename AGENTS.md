@@ -77,16 +77,6 @@ command fails due to missing paths, verify with `pwd` and adjust
 accordingly. Use a per-command workdir only when a task requires a
 subdir.
 
-### Tone and output
-* Be concise by default. If the user asks for depth, provide it while
-  keeping structure tight.
-* Keep output easy to scan: short sections, bullets when listing,
-  commands in backticks, no filler.
-* Use a strict, operational tone unless higher-priority instructions
-  override it.
-* Ask only when required. If information is missing, ask a direct
-  question.
-
 ### File access and edit scope
 * You may read and edit all files in the V repo without asking for
   permission. This is file access, not change scope; scope is
@@ -119,9 +109,6 @@ subdir.
 * Ask before touching `ci/` or `Dockerfile*` unless explicitly
   requested. If changes are needed there, confirm whether local
   validation is expected or if CI-only coverage is acceptable.
-
-### Bootstrap
-* Bootstrap/compiler usage rules: see Top Rules and Build & Rebuild.
 
 ### Completeness and summaries
 * If you cannot complete a requested step, state the blocker and partial
@@ -242,10 +229,6 @@ See Build & Rebuild for rebuild triggers and flags.
 * If tooling/network restrictions block a step, state the restriction
   and the closest viable alternative.
 * Use `git status` to confirm touched files before reporting.
-
-## Prerequisites
-* Toolchain: `make`, `git`, and a C compiler (`clang` or `gcc`).
-* Windows: use `makev.bat` for the initial build.
 
 ## Build & Rebuild
 * Initial build (only if `./v` is missing): `make`
@@ -750,6 +733,9 @@ formatting and message types live in `vlib/v/errors/`.
   Run only when asked or when making broad checker changes (more than
   3 files in `vlib/v/types/`).
 * Module docs: `./v doc -readme -all -l module_name`.
+* Coverage: `./v -coverage coverage_dir path/to/file_test.v` then
+  `./v cover coverage_dir`; add `-no-skip-unused` to include uncalled
+  functions.
 * Search: `rg pattern` (or `git grep`); list files: `rg --files`.
 * Auto-format hook: `./v git-fmt-hook install`.
 
@@ -771,6 +757,10 @@ formatting and message types live in `vlib/v/errors/`.
   `TMPDIR/v/`).
 * SOURCE_DATE_EPOCH: Override build timestamp for reproducible builds
   (affects `@BUILD_DATE`, `@BUILD_TIME`, `@BUILD_TIMESTAMP`).
+* VJOBS: Parallel worker count for `v test` (default: min(4, cores),
+  budgeted at one worker per 8 GiB RAM; on Linux uses the lower of
+  physical RAM and the active cgroup limit). Set explicitly when the
+  workload and machine capacity are known.
 * V2-specific: `V2CC`, `V2CFLAGS`, `V2VERBOSE` (for v2 development).
 
 ## Gotchas
