@@ -17,8 +17,7 @@ pub fn future_ready[T](value T) Future[T] {
 	}
 }
 
-// await is currently an identity (synchronous placeholder). It will unwrap
-// Future[T] once async fn returns Future[T].
-pub fn await[T](x T) T {
-	return x
+// await extracts the result of a (synchronous) Future.
+pub fn await[T](f Future[T]) T {
+	return f.result
 }

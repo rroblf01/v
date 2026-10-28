@@ -10,6 +10,8 @@ fn test_async_future_basic() {
 }
 
 fn test_async_fn_syntax() {
-	r := await add(1, 2)
+	f := add(1, 2)
+	assert f.result == 3
+	r := await f
 	assert r == 3
 }

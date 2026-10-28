@@ -3864,7 +3864,17 @@ fn (mut tc TypeChecker) check_fn_decl_semantics_with_context(fn_idx int, node fl
 	} else {
 		node.typ
 	}
-	tc.cur_fn_ret_type = tc.parse_type(checked_return_type)
+	mut body_return_type := checked_return_type
+	// async fn declares Future[T] but its body returns T
+	if node.is_async {
+		syntax := flat.source_type_syntax(body_return_type)
+		text := syntax.str()
+		if text.starts_with('Future[') && text.ends_with(']') {
+			inner_text := text[7..text.len - 1]
+			body_return_type = flat.source_type_id(inner_text)
+		}
+	}
+	tc.cur_fn_ret_type = tc.parse_type(body_return_type)
 	tc.fn_context.return_type = tc.cur_fn_ret_type
 	tc.fn_context.node_id = fn_idx
 	// Full expression validation can query local declarations even when self-host

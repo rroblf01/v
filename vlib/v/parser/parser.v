@@ -107,6 +107,7 @@ mut:
 	file_type_names              map[u32]bool // source spelling IDs of types declared so far in the current file
 	file_type_names_indexed      int          // nodes before this index are in `file_type_names`
 	cur_fn                       string
+	cur_fn_is_async              bool
 	cur_fn_offset                int = -1
 	unclosed_fn_offset           int = -1 // cur_fn_offset of the last function reported as missing its `}`
 	cur_fn_generic_params        []string
@@ -2176,6 +2177,9 @@ fn (mut p Parser) fn_decl_body(name string, receiver_name string, receiver_type_
 	if p.tok == .semicolon && p.peek() == .lcbr {
 		p.next()
 	}
+	if is_async && ret_type != 'void' {
+		ret_type = 'Future[${ret_type}]'
+	}
 	if !p.prefs.is_fmt && p.tok == .lcbr && !p.seen_default_param_value
 		&& param_ids.any(p.a.node(it).kind == .param && p.a.node(it).typ == 0
 			&& p.a.node(it).value.len > 0) {
@@ -2231,6 +2235,7 @@ fn (mut p Parser) fn_decl_body(name string, receiver_name string, receiver_type_
 	mut body_ids := []flat.NodeId{}
 	mut formatter_end := 0
 	prev_fn := p.cur_fn
+	prev_fn_is_async := p.cur_fn_is_async
 	prev_fn_offset := p.cur_fn_offset
 	prev_fn_generic_params := p.cur_fn_generic_params
 	prev_struct := p.cur_struct
@@ -2240,6 +2245,7 @@ fn (mut p Parser) fn_decl_body(name string, receiver_name string, receiver_type_
 	outer_defer_result_allowed := p.defer_result_allowed
 	outer_nested_block_depth := p.nested_block_depth
 	p.cur_fn = name
+	p.cur_fn_is_async = is_async
 	p.cur_fn_generic_params = generic_params
 	// The declaration's node records `name_pos` as its position, so keying the
 	// names of its skipped bodies on it lets the checker find them again.
@@ -2293,6 +2299,7 @@ fn (mut p Parser) fn_decl_body(name string, receiver_name string, receiver_type_
 	p.end_comptime_value_scope()
 	p.pop_local_type_scope()
 	p.cur_fn = prev_fn
+	p.cur_fn_is_async = prev_fn_is_async
 	p.cur_fn_offset = prev_fn_offset
 	p.cur_fn_generic_params = prev_fn_generic_params
 	p.cur_struct = prev_struct
@@ -9419,6 +9426,23 @@ fn (mut p Parser) return_stmt() flat.NodeId {
 			p.next()
 			ids << p.expr(.lowest)
 		}
+	}
+	// async fn: wrap a single return value in future_ready(...)
+	if p.cur_fn_is_async && ids.len == 1 {
+		ret_pos := p.a.nodes[int(ids[0])].pos
+		callee := p.a.add_node(flat.Node{
+			kind:  .ident
+			value: 'future_ready'
+			pos:   ret_pos
+		})
+		cstart := p.add_children([callee, ids[0]])
+		wrapped := p.a.add_node(flat.Node{
+			kind:           .call
+			children_start: cstart
+			children_count: 2
+			pos:            ret_pos
+		})
+		ids[0] = wrapped
 	}
 	if p.tok == .semicolon {
 		p.next()
