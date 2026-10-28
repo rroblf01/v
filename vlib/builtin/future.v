@@ -1,23 +1,42 @@
 module builtin
 
-// Future represents the eventual result of an asynchronous computation.
-// This is a first, synchronous placeholder used to validate the async/await
-// plumbing. Real suspension is implemented in later phases.
-pub struct Future[T] {
+// FutureState holds the shared result of an asynchronous computation.
+struct FutureState[T] {
 pub mut:
 	result T
 	done   bool
 }
 
+// Future is a handle to a shared FutureState.
+pub struct Future[T] {
+pub:
+	state &FutureState[T]
+}
+
 // future_ready creates an already-completed Future holding `value`.
 pub fn future_ready[T](value T) Future[T] {
-	return Future[T]{
+	state := &FutureState[T]{
 		result: value
 		done:   true
 	}
+	return Future[T]{state: state}
 }
 
-// await extracts the result of a (synchronous) Future.
+// await extracts the result, blocking until it is available.
 pub fn await[T](f Future[T]) T {
-	return f.result
+	for !f.state.done {
+		C.usleep(1000)
+	}
+	return f.state.result
+}
+
+// spawn_async runs `f` in a background thread and returns a Future[T].
+pub fn spawn_async[T](f fn () T) Future[T] {
+	state := &FutureState[T]{}
+	spawn fn [state, f] () {
+		res := f()
+		state.result = res
+		state.done = true
+	}()
+	return Future[T]{state: state}
 }
