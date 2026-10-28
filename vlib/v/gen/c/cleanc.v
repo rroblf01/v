@@ -999,6 +999,7 @@ mut:
 	cur_fn_name                     string
 	cur_fn_source_file              string
 	cur_fn_is_specialized           bool
+	cur_fn_is_async                 bool
 	cur_fn_assert_continues         bool
 	cur_fn_manualfree               bool
 	current_decl_is_mut             bool
