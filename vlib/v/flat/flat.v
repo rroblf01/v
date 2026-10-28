@@ -429,6 +429,7 @@ pub mut:
 	children_start i32
 	payload        u32 // payload id or canonical_comptime_type_payload; 0 = none
 	is_mut         bool
+	is_async       bool
 	kind           NodeKind
 	op             Op
 	flags          u8 // node_flag_* bits; see skip_ownership_drops/is_static_type_method

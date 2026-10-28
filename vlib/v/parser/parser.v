@@ -1731,7 +1731,9 @@ fn (mut p Parser) cur_decl_is_fn() bool {
 
 fn (mut p Parser) fn_decl() flat.NodeId {
 	// Contextual keyword: `async fn ...` (async/await support, WIP).
+	mut is_async := false
 	if p.tok == .name && p.lit == 'async' {
+		is_async = true
 		p.next()
 	}
 	p.check(.key_fn)
@@ -1896,7 +1898,7 @@ fn (mut p Parser) fn_decl() flat.NodeId {
 					clean_type := method_receiver_type_name(receiver_type)
 					name = '${clean_type}.${name}'
 				}
-				return p.fn_decl_body(name, receiver_name, flat.source_type_id(receiver_type), receiver_is_mut, is_method, interop_prefix, name_pos)
+				return p.fn_decl_body(name, receiver_name, flat.source_type_id(receiver_type), receiver_is_mut, is_method, interop_prefix, name_pos, is_async)
 			}
 			// module.func or Type.static_method
 			name_pos = p.tok_pos
@@ -1935,7 +1937,7 @@ fn (mut p Parser) fn_decl() flat.NodeId {
 		p.file_method_names[name] = true
 	}
 
-	id := p.fn_decl_body(name, receiver_name, flat.source_type_id(receiver_type), receiver_is_mut, is_method, '', name_pos)
+	id := p.fn_decl_body(name, receiver_name, flat.source_type_id(receiver_type), receiver_is_mut, is_method, '', name_pos, is_async)
 	if p.prefs.is_fmt && formatter_method_name.len > 0 {
 		// Compiler method names include receiver ownership; retain the source qualifier.
 		p.a.formatter_sources[int(id)] = formatter_method_name
@@ -2079,7 +2081,7 @@ fn (mut p Parser) fn_operator_overload(receiver_name string, receiver_type_id u3
 	return id
 }
 
-fn (mut p Parser) fn_decl_body(name string, receiver_name string, receiver_type_id u32, receiver_is_mut bool, is_method bool, interop_prefix string, name_pos int) flat.NodeId {
+fn (mut p Parser) fn_decl_body(name string, receiver_name string, receiver_type_id u32, receiver_is_mut bool, is_method bool, interop_prefix string, name_pos int, is_async bool) flat.NodeId {
 	is_c_decl := interop_prefix.len > 0
 	is_static_type_method := is_method && receiver_name.len == 0 && !is_c_decl
 	if !p.prefs.is_fmt && !is_c_decl && !is_method && p.cur_module in ['', 'main']
@@ -2305,6 +2307,7 @@ fn (mut p Parser) fn_decl_body(name string, receiver_name string, receiver_type_
 	id := p.add_node(flat.Node{
 		kind:           .fn_decl
 		op:             if is_pub { .arrow } else { .none }
+		is_async:       is_async
 		value:          if p.prefs.is_fmt && is_c_decl { '${interop_prefix}:${name}' } else { name }
 		typ:            flat.source_type_id(ret_type)
 		pos:            token.new_pos(p.cur_file_id, name_pos)
